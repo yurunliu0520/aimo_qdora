@@ -101,7 +101,15 @@ class ModelConfig:
     bnb_4bit_quant_type: Optional[str] = field(
         default="nf4", metadata={"help": "precise the quantization type (fp4 or nf4)"}
     )
-    use_bnb_nested_quant: bool = field(default=False, metadata={"help": "use nested quantization"})
+    
+    bnb_4bit_use_double_quant: bool = field( # Was use_bnb_nested_quant
+        default=True, 
+        metadata={"help": "use double quantization (also known as nested quantization)"}
+    )
+    bnb_4bit_compute_dtype: Optional[str] = field(
+        default="bfloat16", # Or float16 if bf16 not available/preferred
+        metadata={"help": "Compute dtype for 4-bit base models (e.g., bfloat16, float16)."}
+    )
 
     def __post_init__(self):
         if self.load_in_8bit and self.load_in_4bit:

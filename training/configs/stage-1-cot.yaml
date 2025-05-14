@@ -5,6 +5,25 @@ model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
 overwrite_hub_revision: true
+# Add these for QDora (QLoRA + DoRA)
+use_peft: True
+load_in_4bit: True
+bnb_4bit_quant_type: "nf4"
+bnb_4bit_use_double_quant: True # Corresponds to ModelConfig.bnb_4bit_use_double_quant
+bnb_4bit_compute_dtype: "bfloat16" # Or "float16"
+lora_r: 16
+lora_alpha: 16 # Or 128, adjust based on experimentation
+lora_dropout: 0.05
+lora_use_dora: True # Enable DoRA
+lora_target_modules: # CRITICAL: Define for deepseek-math-7b-base
+  - "q_proj"
+  - "k_proj"
+  - "v_proj"
+  - "o_proj"
+  - "gate_proj"
+  - "up_proj"
+  - "down_proj"
+
 # Data training arguments
 # For definitions, see: src/h4/training/config.py
 block_size: 2048
@@ -22,35 +41,41 @@ bf16: true
 do_eval: true
 do_train: true
 eval_strategy: epoch # One of ["no", "steps", "epoch"]
-gradient_accumulation_steps: 1
+per_device_train_batch_size: 2 # Or 2. Start with 1.
+gradient_accumulation_steps: 16 # Or 32, 64. Effective batch size = per_device_train_batch_size * num_processes * gradient_accumulation_steps
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
-hub_model_id: numina-math-7b-cot
+hub_model_id: numina-math-7b-cot-qdora-4bit
 hub_private_repo: true
 hub_strategy: every_save
-learning_rate: 2.0e-05
+learning_rate: 1.0e-05 # QDora might benefit from slightly lower LR compared to full finetune or standard LoRA
 log_level: passive
 logging_steps: 5  
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_steps: -1
 num_train_epochs: 3
-output_dir: data/numina-math-7b-cot
+output_dir: data/numina-math-7b-cot-qdora-4bit # New output directory
 hub_model_revision: main
-run_name: numina-math-7b-cot
+run_name: numina-math-7b-cot-qdora-4bit
 overwrite_output_dir: true
-per_device_eval_batch_size: 8
-per_device_train_batch_size: 4
-push_to_hub: true
+per_device_eval_batch_size: 4
+push_to_hub: false # Set to false for initial testing if preferred
+output_dir: data/numina-math-7b-cot-qdora-4bit-local
 remove_unused_columns: true
 report_to:
 - tensorboard
 - wandb
 save_strategy: "no"
 seed: 42
-wandb_run_group: numina-math-7b-cot # Name of the W&B group to collect all runs of this experiment under. Use double-digits for {idx}, starting from 00.
-wandb_run_id: null # Set this to a globally unique string if you want a descriptive name of your run
-wandb_tags: # Use tags to filter runs on WandB
+wandb_run_group: numina-math-7b-cot-qdora-4bit
+wandb_run_id: null
+wandb_tags:
 - sft
-warmup_ratio: 0.
+- qdora
+- 4bit
+warmup_ratio: 0.03 # Standard warmup
+wandb_entity: YourWandBEntity
+wandb_project: AIMO-Numina-QDora 
+wandb_enabled: true                        
