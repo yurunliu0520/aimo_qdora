@@ -24,6 +24,11 @@ lora_target_modules: # CRITICAL: Define for deepseek-math-7b-base
   - "up_proj"
   - "down_proj"
 
+# Periodic LoRA Merging Configuration
+enable_periodic_lora_merge: false  # Set to true to enable periodic LoRA merging
+lora_merge_steps: null             # Interval in training steps (e.g., 100) if periodic merging is enabled. 
+                                   # Set to a positive integer.
+
 # Data training arguments
 # For definitions, see: src/h4/training/config.py
 block_size: 2048

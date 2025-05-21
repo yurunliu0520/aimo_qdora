@@ -39,6 +39,7 @@ from aimo.utils import (
     hf_login,
     init_wandb_training,
 )
+from training.aimo.utils.callbacks import LoraMergeCallback # Added import
 from transformers import set_seed, BitsAndBytesConfig, AutoModelForCausalLM
 # Import PeftModel and LoraConfig related classes
 from peft import LoraConfig, TaskType, get_peft_model, prepare_model_for_kbit_training
@@ -206,6 +207,23 @@ def main():
 
     # Apply chat template to datasets
     raw_datasets = raw_datasets.map(apply_chat_template, fn_kwargs={"tokenizer": tokenizer, "task": "sft"})
+
+    # Initialize the custom callback list
+    custom_callbacks = []
+    if sft_config.enable_periodic_lora_merge:
+        if sft_config.lora_merge_steps is not None and sft_config.lora_merge_steps > 0:
+            logger.info(f"Initializing LoraMergeCallback: enabled with merge interval {sft_config.lora_merge_steps} steps.")
+            lora_merge_callback = LoraMergeCallback(
+                model_config=model_config, 
+                sft_config=sft_config, # sft_config is the TrainingArguments instance
+                merge_interval=sft_config.lora_merge_steps
+            )
+            custom_callbacks.append(lora_merge_callback)
+        else:
+            logger.warning("LoraMergeCallback is enabled but 'lora_merge_steps' is not a positive integer. Callback will not be added.")
+    else:
+        logger.info("LoraMergeCallback is not enabled ('enable_periodic_lora_merge' is False).")
+
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["test"]
 
@@ -223,6 +241,7 @@ def main():
         max_seq_length=data_config.block_size,
         tokenizer=tokenizer,
         packing=sft_config.packing,
+        callbacks=custom_callbacks,  # Pass the custom_callbacks list here
         # peft_config is not needed here as the model is already a PeftModel
     )
 

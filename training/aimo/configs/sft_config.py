@@ -62,6 +62,14 @@ class SFTConfig(transformers.TrainingArguments):
     save_strategy: Optional[str] = field(default="steps")
     save_steps: Optional[int] = field(default=0.1)
     save_total_limit: Optional[int] = field(default=1)
+    enable_periodic_lora_merge: bool = field(
+        default=False,
+        metadata={"help": "Enable periodic merging of LoRA adapters during training. If True, `lora_merge_steps` must also be set to a positive integer."}
+    )
+    lora_merge_steps: Optional[int] = field(
+        default=None, 
+        metadata={"help": "Interval in training steps to merge LoRA adapters if `enable_periodic_lora_merge` is True. Must be a positive integer when enabled."}
+    )
     wandb_tags: Optional[List[str]] = field(
         default=None,
         metadata={"help": ("Tags to group and filter runs on Weights and Biases.")},
